@@ -17,7 +17,7 @@ var (
 )
 
 func main() {
-	kingpin.Version("0.0.1")
+	kingpin.Version("0.0.2")
 	kingpin.Parse()
 
 	hook := gitlab.New(&gitlab.Config{})
@@ -35,14 +35,13 @@ func HandlePipeline(payload interface{}, header webhooks.Header) {
 	fmt.Println("Handling Pipeline event")
 
 	pl := payload.(gitlab.PipelineEventPayload)
-	if pl.ObjectAttributes.Status != "success" {
-
-		attachment1 := slack.Attachment{}
-		attachment1.AddField(slack.Field{Title: "Failed commit", Value: fmt.Sprintf("<%s|link>", pl.Commit.URL)}).AddField(slack.Field{Title: "Author", Value: pl.Commit.Author.Name})
+	if pl.ObjectAttributes.Status == "failed" {
+		attachment := slack.Attachment{}
+		attachment.AddField(slack.Field{Title: "Failed commit", Value: fmt.Sprintf("<%s|link>", pl.Commit.URL)}).AddField(slack.Field{Title: "Author", Value: pl.Commit.Author.Name})
 		slackPayload := slack.Payload{
-			Text:        fmt.Sprintf("Hi! Project: *%s* failed to build! Here's a link to the <%s/%s/pipelines/%d|failed pipeline>", *gitlabUrl, pl.Project.PathWithNamespace, pl.Project.PathWithNamespace, pl.ObjectAttributes.ID),
+			Text:        fmt.Sprintf("Hi! Project: *%s* failed to build! Here's a link to the <%s/%s/pipelines/%d|failed pipeline>",  pl.Project.PathWithNamespace, *gitlabUrl, pl.Project.PathWithNamespace, pl.ObjectAttributes.ID),
 			Username:    "Gitlab",
-			Attachments: []slack.Attachment{attachment1},
+			Attachments: []slack.Attachment{attachment},
 		}
 		err := slack.Send(*webhookUrl, "", slackPayload)
 		if len(err) > 0 {
